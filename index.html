@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Daily Attendance System</title>
+    <meta name="description" content="Attendance system with daily tracking and status update">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        p {
+            font-size: 24px;
+            margin: 0 0 20px;
+            color: #333;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .popup-content p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .popup-content button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .popup-content button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p id="time-display">00:00:00</p>
+        <button id="checkin-btn">Check in Now</button>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <p id="popup-message"></p>
+            <button id="confirm-btn">Yes</button>
+            <button id="close-btn">Close</button>
+        </div>
+    </div>
+
+    <div class="attendance-list" id="attendance-list">
+        <h3>Daily Attendance List</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-tbody">
+                <!-- Attendance data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const timeDisplay = document.getElementById("time-display");
+        const checkinBtn = document.getElementById("checkin-btn");
+        const popup = document.getElementById("popup");
+        const popupMessage = document.getElementById("popup-message");
+        const confirmBtn = document.getElementById("confirm-btn");
+        const closeBtn = document.getElementById("close-btn");
+        const attendanceTbody = document.getElementById("attendance-tbody");
+
+        let employeeName = "John Doe"; // Replace with actual user input or session data
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toTimeString().split(" ")[0];
+        }
+
+        function getCurrentDate() {
+            const now = new Date();
+            return now.toISOString().split('T')[0];
+        }
+
+        async function saveAttendance(name) {
+            try {
+                const response = await fetch("http://localhost:6000/checkin", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+                console.log(data);
+                fetchAttendance(); // Refresh the attendance list after check-in
+            } catch (error) {
+                console.error("Error saving attendance:", error);
+            }
+        }
+
+        checkinBtn.addEventListener("click", () => {
+            const currentTime = getCurrentTime();
+            popupMessage.innerText = `Check in at ${currentTime}?`;
+            popup.style.display = "flex";
+        });
+
+        confirmBtn.addEventListener("click", () => {
+            const currentTime = getCurrentTime();
+            timeDisplay.innerText = currentTime;
+
+            saveAttendance(employeeName); // Save attendance data to the database
+
+            popup.style.display = "none";
+        });
+
+        closeBtn.addEventListener("click", () => {
+            popup.style.display = "none";
+        });
+
+        // Fetch and display attendance records
+        async function fetchAttendance() {
+            try {
+                const response = await fetch("http://localhost:6000/attendance");
+                const records = await response.json();
+
+                attendanceTbody.innerHTML = ""; // Clear existing rows
+                records.forEach(record => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${record.name}</td>
+                        <td>${record.date}</td>
+                        <td>${record.status}</td>
+                    `;
+                    attendanceTbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching attendance records:", error);
+            }
+        }
+        fetchAttendance(); // Fetch and display attendance on page load
+    </script>
+</body>
+</html>
